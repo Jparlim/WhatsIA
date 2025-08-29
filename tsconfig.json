@@ -1,21 +1,14 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "_version": "22.0.0",
-
   "compilerOptions": {
-    "lib": ["es2024", "ESNext.Array", "ESNext.Collection", "ESNext.Iterator"],
-    "module": "nodenext",
-    "target": "es2022",
-
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "moduleResolution": "node16",
-
-    "target": "ES2020",
-    "rootDir": "src",
-    "outDir": "dist",
-    "esModuleInterop": true,
-    "strict": true
-  }
+    "target": "ES2020",                 // Versão moderna do JS
+    "module": "CommonJS",              // Usa require() no JS final
+    "moduleResolution": "node",        // Resolve pacotes do node
+    "outDir": "dist",                  // Compila os arquivos para dist/
+    "rootDir": "src",                  // Seu código-fonte fica em src/
+    "esModuleInterop": true,           // Permite importar libs sem dor de cabeça
+    "strict": true,                    // Ativa checagens estritas
+    "skipLibCheck": true               // Evita erros chatos de tipagem em libs
+  },
+  "include": ["src"],                  // Pasta do código-fonte
+  "exclude": ["node_modules", "dist"]  // Ignora essas pastas
 }
