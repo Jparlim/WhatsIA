@@ -23,6 +23,13 @@ App.post('/whatsapp', async (request, reply) => {
     reply.header("content-type", "text/xml");
     reply.status(200).send({message: `recebemos sua mensagem${Body}`})
 })
+const port = Number(process.env.PORT) || 3000;
 
-
-App.listen({port:3000}, () => console.log("servidor filhadaputamente rodando!"))
+App.listen({ port, host: "0.0.0.0" })
+  .then(() => {
+    console.log(`🚀 Server rodando na porta ${port}`);
+  })
+  .catch((err) => {
+    App.log.error(err);
+    process.exit(1);
+  });
