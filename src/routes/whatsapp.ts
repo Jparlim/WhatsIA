@@ -18,11 +18,6 @@ export function WhatsRoute() {
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: Body,
-        config: {
-          thinkingConfig: {
-            thinkingBudget: 0
-          }
-        }
       });
       
       reply.header("content-type", "text/xml");
