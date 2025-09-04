@@ -1,60 +1,43 @@
-import { FastifyInstance } from "fastify";
-import axios from "axios";
-import qs from "qs"
+import { FastifyReply, FastifyRequest } from "fastify";
+import dotenv from "dotenv"
+import { GoogleGenAI } from "@google/genai";
 
+interface data {
+  Body: Object,
+  From: Number
+}
 
-export default async function whatsappRoutes(fastify: FastifyInstance) {
-  fastify.post("/webhook", async (request, reply) => {
-    const body = request.body as any;
-    const message = body?.Body;   // texto que o usuário mandou
-    const from = body?.From;      // número do usuário
+dotenv.config();
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
-    console.log("📩 Mensagem recebida:", message);
-
-    // === Chamada para Gemini ===
-    let iaReply = "Desculpe, não consegui gerar resposta.";
-    try {
-      const geminiRes = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          contents: [
-            {
-              parts: [{ text: message }]
-            }
-          ]
-        }
-      );
-
-      iaReply =
-        geminiRes.data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Não entendi sua pergunta.";
-    } catch (error) {
-      console.error("Erro ao chamar Gemini:", error);
-    }
-
-    // === Enviar resposta via Twilio ===
-    const twilioData = qs.stringify({
-      To: from,
-      From: process.env.TWILIO_WHATSAPP_NUMBER,
-      Body: iaReply
-    });
+export function WhatsRoute() {
+  async (request:FastifyRequest, reply:FastifyReply) => {
+    const { Body, From } = request.body as data
 
     try {
-      await axios.post(
-        `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
-        twilioData,
-        {
-          auth: {
-            username: process.env.TWILIO_ACCOUNT_SID!,
-            password: process.env.TWILIO_AUTH_TOKEN!
-          },
-          headers: { "Content-Type": "application/x-www-form-urlencoded" }
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: Body,
+        config: {
+          thinkingConfig: {
+            thinkingBudget: 0
+          }
         }
-      );
+      });
+      
+      reply.header("content-type", "text/xml");
+      reply.send(`
+        <Response>
+          <Message>${response.text}</Message>
+        </Response>
+        `)
     } catch (error) {
-      console.error("Erro ao enviar mensagem via Twilio:", error);
+      reply.header("content-type", "text/xml");
+      reply.send(`
+        <Response>
+          <Message>desculpe, ocorreu um erro ao processar sua mensagem.</Message>
+        </Response>
+        `)
     }
-
-    reply.send("OK");
-  });
+  }
 }
