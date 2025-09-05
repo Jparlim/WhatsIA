@@ -9,6 +9,10 @@ App.register(cors, { origin: "*"})
 
 App.post('/whatsapp', WhatsRoute)
 
+App.get("/", async (request, reply) => {
+    return { status: "servidor rodando!"}
+})
+
 
 const port = Number(process.env.PORT) || 3000;
 
