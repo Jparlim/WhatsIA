@@ -1,41 +1,70 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import dotenv from "dotenv"
-import { GoogleGenAI } from "@google/genai";
-
-interface data {
-  Body: Object,
-  From: Number
-}
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 dotenv.config();
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
-export async function WhatsRoute(request:FastifyRequest, reply:FastifyReply) {
-    const { Body, From } = request.body as data
+interface Data {
+  Body: string;
+  From: string;
+}
 
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: Body,
-        config: {
-          thinkingConfig: {
-          thinkingBudget: 0,
-        },
-        }
-      });
-      
-      reply.header("content-type", "text/xml");
-      reply.send(`
-        <Response>
-          <Message>${response.text}</Message>
-        </Response>
-        `)
-    } catch (error) {
-      reply.header("content-type", "text/xml");
-      reply.send(`
-        <Response>
-          <Message>desculpe, ocorreu um erro ao processar sua mensagem.</Message>
-        </Response>
-        `)
-    }
+interface Mensagem {
+  role: "user" | "model";
+  text: string;
+  hora: Date;
+}
+
+const Memoria: { [userId: string]: Mensagem[] } = {};
+
+const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+export async function WhatsRoute(request: FastifyRequest, reply: FastifyReply) {
+  const { Body, From } = request.body as Data;
+
+  if (!Memoria[From]) {
+    Memoria[From] = [];
   }
+
+  Memoria[From].push({
+    role: "user",
+    text: Body,
+    hora: new Date(),
+  });
+
+  try {
+    const contexto = Memoria[From].slice(-10).map((m) => ({
+      role: m.role,
+      parts: [{ text: m.text }],
+    }));
+
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const response = await model.generateContent({
+      contents: contexto,
+    });
+
+    const respostaTexto = response.response.text();
+
+    Memoria[From].push({
+      role: "model",
+      text: respostaTexto,
+      hora: new Date(),
+    });
+
+    reply.header("content-type", "text/xml");
+    reply.send(`
+      <Response>
+        <Message>${respostaTexto}</Message> 
+      </Response>
+    `);
+  } catch (error) {
+    console.error(error);
+    reply.header("content-type", "text/xml");
+    reply.send(`
+      <Response>
+        <Message>Desculpe, ocorreu um erro ao processar sua mensagem.</Message>
+      </Response>
+    `);
+  }
+}
