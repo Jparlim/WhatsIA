@@ -2,12 +2,16 @@ import fastify from "fastify";
 import cors from "@fastify/cors"
 import { WhatsRoute } from "./routes/whatsapp";
 
+import { WhatsTeste } from "./routes/whatsTeste";
+
 const App = fastify({logger:true});
 App.register(import("@fastify/formbody"))
 App.register(cors, { origin: "*"})
 
 
 App.post('/whatsapp', WhatsRoute)
+
+App.post('/teste', WhatsTeste)
 
 App.get("/", async (request, reply) => {
     return { status: "servidor rodando!"}

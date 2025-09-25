@@ -1,79 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import dotenv from "dotenv"
-import { GoogleGenAI } from "@google/genai";
-
-
-dotenv.config();
-// const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-
-
-// interface data {
-//   Body: string,
-//   From: string
-// }
-
-// interface Mensagem {
-//   role: "user" | "model",
-//   text: string,
-//   hora: Date;
-// }
-
-// const Memoria: { 
-//   [userId: string]:Mensagem[]
-//  } = {}
-
-// export async function WhatsRoute(request:FastifyRequest, reply:FastifyReply) {
-//   const { Body, From } = request.body as data
-
-//   if(!Memoria[From]) {
-//     Memoria[From] = []
-//   }
-
-//   Memoria[From].push({
-//     role: "user",
-//     text: Body,
-//     hora: new Date(),
-//   })
-
-//   const context = Memoria[From].slice(-10).map(msg => ({
-//     role: msg.role,
-//     parts: [{ text: msg.text }]
-//   }))
-
-//   try {
-//     const response = await ai.models.generateContent({
-//       model: "gemini-2.5-flash",
-//       contents: context,
-//       config: {
-//         thinkingConfig: {
-//           thinkingBudget: 0,
-//         },
-//       }
-//     });
-
-//     Memoria[From].push({
-//       role: "model",
-//       text: response.text as string,
-//       hora: new Date()
-//     })
-      
-//       reply.header("content-type", "text/xml");
-//       reply.send(`
-//         <Response>
-//           <Message>${response}</Message> 
-//         </Response>
-//         `)
-//     } catch (error) {
-//       reply.header("content-type", "text/xml");
-//       reply.send(`
-//         <Response>
-//           <Message>desculpe, ocorreu um erro ao processar sua mensagem.</Message>
-//         </Response>
-//         `)
-//     }
-//   }
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { ClientList } from "../clientList";
 
 dotenv.config();
 
@@ -101,7 +29,13 @@ export async function WhatsRoute(request: FastifyRequest, reply: FastifyReply) {
 
   Memoria[From].push({
     role: "user",
-    text: "Você é uma atendente virtual da empresa Joao Moreira Pintura e Reparo, voce deve responder sempre de forma educada e profissional, ajudando o cliente com informações sobre o serviço e duvidas. caso não saiba algo, diga que vai encaminhar para um atendente humano",
+    text: `Você é uma atendente virtual da empresa Joao Moreira Pintura e Reparo, voce deve responder sempre de forma educada e profissional, 
+    ajudando o cliente com informações sobre o serviço e duvidas. caso não saiba algo, diga que vai encaminhar para um atendente humano. não faça textos muito grandes e nem muitas perguntas em uma mensagem só!
+    , de alguma forma você vai ter que saber o nome dele e o serviço desejado! quero que você salve o nome e o serviço desejado apenas em formato JSON igual o exemplo:
+    {
+      "client": "...",
+      "serviço": "...",
+    }`,
     hora: new Date(),
   })
 
@@ -130,6 +64,17 @@ export async function WhatsRoute(request: FastifyRequest, reply: FastifyReply) {
       text: respostaTexto,
       hora: new Date(),
     });
+
+    if(response.response.candidates) {
+      const ParseJson = response.response.candidates[0].content.parts[0].text ?? "{}"
+
+      // ClientList({
+      //   client: ,
+      //   numero: From,
+      //   serviço: ,
+      //   data: new Date()
+      // })
+    }
 
     reply.header("content-type", "text/xml");
     reply.send(`
